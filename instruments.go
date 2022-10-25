@@ -3,6 +3,8 @@ package giDevice
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/electricbubble/gidevice/pkg/libimobiledevice"
 )
 
@@ -281,4 +283,64 @@ type DeviceInfo struct {
 	ProductType       string `json:"_productType"`
 	ProductVersion    string `json:"_productVersion"`
 	XRDeviceClassName string `json:"_xrdeviceClassName"`
+}
+
+func on_sysmontap_message(m libimobiledevice.DTXMessageResult) {
+	data, err := json.Marshal(m.Obj)
+	if err != nil {
+		return
+	}
+	fmt.Println(string(data))
+}
+
+func (i *instruments) Sysmontap() (err error) {
+	var id uint32
+	if id, err = i.requestChannel("com.apple.instruments.server.services.sysmontap"); err != nil {
+		return err
+	}
+
+	selector := "setConfig:"
+
+	// var tmp AUSSysmontap
+	// tmp.Ur = 1000
+	// tmp.Bm = 0
+
+	// tmp.ProcAttrs = []string{"memVirtualSize", "cpuUsage", "procStatus", "appSleep", "uid", "vmPageIns", "memRShrd", "ctxSwitch", "memCompressed", "intWakeups", "cpuTotalSystem", "responsiblePID", "physFootprint", "cpuTotalUser", "sysCallsUnix", "memResidentSize", "sysCallsMach", "memPurgeable", "diskBytesRead", "machPortCount", "__suddenTerm", "__arch", "memRPrvt", "msgSent", "ppid", "threadCount", "memAnon", "diskBytesWritten", "pgid", "faults", "msgRecv", "__restricted", "pid", "__sandbox"}
+	// tmp.SysAttrs = []string{"diskWriteOps", "diskBytesRead", "diskBytesWritten", "threadCount", "vmCompressorPageCount", "vmExtPageCount", "vmFreeCount", "vmIntPageCount", "vmPurgeableCount", "netPacketsIn", "vmWireCount", "netBytesIn", "netPacketsOut", "diskReadOps", "vmUsedCount", "__vmSwapUsage", "netBytesOut"}
+	// tmp.CPUUsage = true
+	// tmp.SampleInterval = 1000000000
+	// tmp = json.Marshal(tmp)
+	tmp := make(map[string]interface{})
+	tmp["ur"] = 1000
+	tmp["bm"] = 0
+	tmp["procAttrs"] = []string{"pid", "cpuUsage", "threadCount", "memVirtualSize", "vmPageIns", "memRShrd", "memCompressed"}
+	tmp["sysAttrs"] = []string{"diskWriteOps", "diskBytesRead", "diskBytesWritten", "threadCount", "vmCompressorPageCount", "vmExtPageCount", "vmFreeCount", "vmIntPageCount", "vmPurgeableCount", "netPacketsIn", "vmWireCount", "netBytesIn", "netPacketsOut", "diskReadOps", "vmUsedCount", "__vmSwapUsage", "netBytesOut"}
+	tmp["cpuUsage"] = true
+	tmp["sampleInterval"] = time.Second * 1
+
+	args := libimobiledevice.NewAuxBuffer()
+
+	if err = args.AppendObject(tmp); err != nil {
+		return err
+	}
+
+	var result *libimobiledevice.DTXMessageResult
+	if result, err = i.client.Invoke(selector, args, id, true); err != nil {
+		return err
+	}
+
+	data, err := json.Marshal(result.Obj)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(data))
+	// devInfo = new(DeviceInfo)
+	// err = json.Unmarshal(data, devInfo)
+
+	i.registerCallback("", on_sysmontap_message)
+
+	i.client.Invoke("start", libimobiledevice.NewAuxBuffer(), id, true)
+	time.Sleep(time.Second * 5)
+	i.client.Invoke("stop", libimobiledevice.NewAuxBuffer(), id, true)
+	return
 }
