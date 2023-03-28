@@ -10,6 +10,8 @@ import (
 
 var _ Instruments = (*instruments)(nil)
 
+var OutputCallBack func(m string)
+
 func newInstruments(client *libimobiledevice.InstrumentsClient) *instruments {
 	return &instruments{
 		client: client,
@@ -290,10 +292,14 @@ func on_sysmontap_message(m libimobiledevice.DTXMessageResult) {
 	if err != nil {
 		return
 	}
+	if OutputCallBack != nil {
+		OutputCallBack(string(data))
+	}
 	fmt.Println(string(data))
 }
 
-func (i *instruments) Sysmontap() (err error) {
+func (i *instruments) Sysmontap(cb func(m string)) (err error) {
+	OutputCallBack = cb
 	var id uint32
 	if id, err = i.requestChannel("com.apple.instruments.server.services.sysmontap"); err != nil {
 		return err
@@ -340,7 +346,17 @@ func (i *instruments) Sysmontap() (err error) {
 	i.registerCallback("", on_sysmontap_message)
 
 	i.client.Invoke("start", libimobiledevice.NewAuxBuffer(), id, true)
-	time.Sleep(time.Second * 5)
+	// time.Sleep(time.Second * 5)
+	// i.client.Invoke("stop", libimobiledevice.NewAuxBuffer(), id, true)
+	return
+}
+
+func (i *instruments) StopSysmontap() (err error) {
+	var id uint32
+	if id, err = i.requestChannel("com.apple.instruments.server.services.sysmontap"); err != nil {
+		return err
+	}
 	i.client.Invoke("stop", libimobiledevice.NewAuxBuffer(), id, true)
+	OutputCallBack = nil
 	return
 }

@@ -78,7 +78,8 @@ type Device interface {
 	GetIconPNGData(bundleId string) (raw *bytes.Buffer, err error)
 	GetInterfaceOrientation() (orientation OrientationState, err error)
 
-	Sysmontap() (err error)
+	Sysmontap(cb func(m string)) (err error)
+	StopSysmontap() (err error)
 }
 
 type DeviceProperties = libimobiledevice.DeviceProperties
@@ -144,7 +145,8 @@ type Instruments interface {
 	AppRunningProcesses() (processes []Process, err error)
 	AppList(opts ...AppListOption) (apps []Application, err error)
 	DeviceInfo() (devInfo *DeviceInfo, err error)
-	Sysmontap() (err error)
+	Sysmontap(cb func(m string)) (err error)
+	StopSysmontap() (err error)
 
 	appProcess(bundleID string) (err error)
 	startObserving(pid int) (err error)

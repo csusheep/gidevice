@@ -838,9 +838,16 @@ func (d *device) _uploadXCTestConfiguration(bundleID string, sessionId uuid.UUID
 	return
 }
 
-func (d *device) Sysmontap() (err error) {
+func (d *device) Sysmontap(cb func(m string)) (err error) {
 	if _, err = d.instrumentsService(); err != nil {
 		return err
 	}
-	return d.instruments.Sysmontap()
+	return d.instruments.Sysmontap(cb)
+}
+
+func (d *device) StopSysmontap() (err error) {
+	if _, err = d.instrumentsService(); err != nil {
+		return err
+	}
+	return d.instruments.StopSysmontap()
 }
